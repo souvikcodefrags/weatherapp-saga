@@ -14,7 +14,7 @@ WeatherApp with redux-saga
   * [weather_list.js](#containers-weather-list-js)
 * reducers
   * [index.js](#reducers-index-js)
-  * [reducer_weather.js](#reducers-weather-js)
+  * [reducer_weather.js](#reducers-reducer-weather-js)
 * sagas
   * [index.js](#sagas-index-js)
 * [index.js](#root-index-js)
@@ -138,5 +138,243 @@ export function fetchWeather(city) {
   const req = axios.get(url);
   // console.log(JSON.stringify(req));
   return req;
+}
+```
+### <a name="components-app-js"></a>/components/app.js
+
+```sh
+import React, { Component } from "react";
+import WeatherList from "../containers/weather_list";
+import SearchBar from "../containers/search_bar";
+import Notify from "./notify";
+
+export default class App extends Component {
+  render() {
+    return (
+      <div>
+        <SearchBar />
+        <div className="alert-container">
+          <Notify />
+        </div>
+        <WeatherList />
+      </div>
+    );
+  }
+}
+```
+### <a name="components-notify-js"></a>/components/notify.js
+
+```sh
+import React, { Component } from "react";
+import { connect } from "react-redux";
+
+class Notify extends Component {
+  constructor(props) {
+    super(props);
+    this.myRef = React.createRef();
+  }
+
+  closeAlert(e) {
+    const node = this.myRef.current;
+    node.className += " hide";
+  }
+
+  componentDidUpdate() {
+    console.log("componentDidUpdate-", this.props.fetchStatus);
+    if (!this.props.fetchStatus) {
+      setTimeout(() => {
+        this.closeAlert();
+      }, 5000);
+    }
+  }
+
+  render() {
+    return (
+      !this.props.fetchStatus && (
+        <div className="alert-div" ref={this.myRef}>
+          {this.props.alertMessage}
+          <span className="float-right" onClick={e => this.closeAlert(e)}>
+            X
+          </span>
+        </div>
+      )
+    );
+  }
+}
+
+const mapStateToProps = ({ weather }) => ({
+  fetchStatus: weather.fetchStatus,
+  alertMessage: weather.alertMessage
+});
+
+export default connect(mapStateToProps)(Notify);
+```
+### <a name="containers-search-bar-js"></a>/containers/search_bar.js
+
+```sh
+import React, { Component } from "react";
+import { connect } from "react-redux";
+import { fetchWeatherAction } from "../actions/index";
+
+class SearchBar extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { term: "" };
+  }
+
+  handleInputChange = event => {
+    this.setState({ term: event.target.value });
+  };
+
+  handleSubmit = e => {
+    e.preventDefault();
+    this.props.fetchWeatherAct(this.state.term);
+    this.setState({ term: "" });
+  };
+
+  render() {
+    return (
+      <div>
+        <form action="" className="input-group" onSubmit={this.handleSubmit}>
+          <input
+            type="text"
+            placeholder="Type US City Name"
+            className="form-control"
+            value={this.state.term}
+            onChange={this.handleInputChange}
+          />
+          <span className="input-group-btn">
+            <button type="submit" className="btn btn-secondary">
+              Submit
+            </button>
+          </span>
+        </form>
+      </div>
+    );
+  }
+}
+
+const mapDispatchToProps = dispatch => ({
+  fetchWeatherAct: data => {
+    dispatch(fetchWeatherAction(data));
+  }
+});
+
+export default connect(
+  null,
+  mapDispatchToProps
+)(SearchBar);
+
+```
+### <a name="containers-weather-list-js"></a>/containers/weather_list.js
+
+```sh
+import React, { Component } from "react";
+import { connect } from "react-redux";
+
+class WeatherList extends Component {
+  constructor(props) {
+    super(props);
+    this.myRef = React.createRef();
+  }
+  renderWeather(cityData) {
+    return cityData ? (
+      <tr key={cityData.city.name}>
+        <td>{cityData.city.name}</td>
+        <td>{cityData.list[0].main.temp}</td>
+        <td>{cityData.list[0].main.pressure}</td>
+        <td>{cityData.list[0].main.humidity}</td>
+      </tr>
+    ) : null;
+  } 
+
+  render() {
+    return (
+      <>        
+        <table className="table-group">
+          <thead>
+            <tr>
+              <th>City</th>
+              <th>Temparature</th>
+              <th>Pressure</th>
+              <th>Humidity</th>
+            </tr>
+          </thead>
+          <tbody>{this.props.weather.map(this.renderWeather)}</tbody>
+        </table>
+      </>
+    );
+  }
+}
+
+const mapStateToProps = ({ weather }) => {  
+  return {
+    weather: weather.weatherData,
+    fetchStatus: weather.fetchStatus
+  };
+};
+export default connect(mapStateToProps)(WeatherList);
+
+```
+### <a name="reducers-index-js"></a>/reducers/index.js
+
+```sh
+import { combineReducers } from "redux";
+import WeatherReducer from "./reducer_weather";
+
+const rootReducer = combineReducers({
+  weather: WeatherReducer
+});
+
+export default rootReducer;
+```
+### <a name="reducers-reducer-weather-js"></a>/reducers/reducer_weather-js
+
+```sh
+import {
+  FETCH_WEATHER,
+  FETCH_WEATHER_SUCCESS,
+  FETCH_WEATHER_FAIL
+} from "../actions/types";
+
+export default function(
+  state = { weatherData: [], fetchStatus: true },
+  action
+) {
+  switch (action.type) {
+    case FETCH_WEATHER:
+      return { ...state, fetchStatus: true };
+    case FETCH_WEATHER_SUCCESS:
+      // var obj = { ...state, weatherData: [...action.data] };
+      //console.log("REDUCER--", state.weatherData);
+      return { ...state, weatherData: [...state.weatherData, action.data] };
+    case FETCH_WEATHER_FAIL:
+      return { ...state, fetchStatus: false, alertMessage: "City not found" };
+  }
+  return state;
+}
+```
+### <a name="sagas-index-js"></a>/sagas/index.js
+
+```sh
+import { put, call, takeEvery, takeLatest } from "redux-saga/effects";
+import { fetchWeather } from "../api";
+import {
+  FETCH_WEATHER,
+  FETCH_WEATHER_SUCCESS,
+  FETCH_WEATHER_FAIL
+} from "../actions/types";
+
+export function* featchWeatherFromAxios(action) {
+  try {
+    const response = yield call(fetchWeather, action.data);
+    yield put({ type: FETCH_WEATHER_SUCCESS, data: response.data });
+  } catch (error) {
+    yield put({ type: FETCH_WEATHER_FAIL, error });
+  }
+}
+
+export default function* rootSaga() {
+  yield takeLatest(FETCH_WEATHER, featchWeatherFromAxios);
 }
 ```
