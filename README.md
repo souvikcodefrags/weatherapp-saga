@@ -5,20 +5,20 @@ WeatherApp with redux-saga
   * [index.js](#actions-index-js)
   * [types.js ](#actions-types-js)
 * api
-  * index.js
+  * [index.js](#api-index-js)
 * components
-  * app.js
-  * notify.js
+  * [app.js](#components-app-js)
+  * [notify.js](#components-notify-js)
 * containers
-  * search_bar.js
-  * weather_list.js
+  * [search_bar.js](#containers-search-bar-js)
+  * [weather_list.js](#containers-weather-list-js)
 * reducers
-  * index.js
-  * reducer_weather.js
+  * [index.js](#reducers-index-js)
+  * [reducer_weather.js](#reducers-weather-js)
 * sagas
-  * index.js
+  * [index.js](#sagas-index-js)
 * [index.js](#root-index-js)
-* styles.css
+* [styles.css](#root-styles-css)
 
 
 ### <a name="root-index-js"></a>/index.js
@@ -112,6 +112,7 @@ table.table-group td {
 
 ```sh
 import { FETCH_WEATHER } from "./types";
+
 export const fetchWeatherAction = data => ({ type: FETCH_WEATHER, data });
 ```
 
@@ -123,3 +124,19 @@ export const FETCH_WEATHER_SUCCESS = "FETCH_WEATHER_SUCCESS";
 export const FETCH_WEATHER_FAIL = "FETCH_WEATHER_FAIL";
 ```
 
+### <a name="api-index-js"></a>/api/index.js
+
+```sh
+import axios from "axios";
+
+const API_KEY = "710486ede3c1b3a27559af4c487bb598";
+const ROOT_URL = `https://api.openweathermap.org/data/2.5/forecast?appid=${API_KEY}`;
+
+export function fetchWeather(city) {
+  // console.log(city);
+  const url = `${ROOT_URL}&q=${city},us`;
+  const req = axios.get(url);
+  // console.log(JSON.stringify(req));
+  return req;
+}
+```
